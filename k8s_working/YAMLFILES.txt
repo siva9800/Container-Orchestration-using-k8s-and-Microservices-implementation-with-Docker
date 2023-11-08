@@ -1,0 +1,51 @@
+
+YAML:
+  1.it 	humab friendly data serialization standard for all programming languages
+  2.syntax: strict indentation(we can use yaml online validator to fix errors)
+  3.store your confg file with your code(its part of infrastructure as a code concept)
+
+EVERY CONFIGURATION FILE IN K8S HAVE 3 PARTS:
+	1.Meta Data
+	2.specifications(spec:( attributes of spec(specifications) are specific to the kind(deployment or service)
+	3.status(its automatically generated and added by kubernetes-->the way its works is that k8s will always compare whats the desired state and whats the actual status if both does not
+	  match then k8s knows there is something to fix there and it will try to fix it this is bases of self healing future that k8s provides 
+
+3.status:
+	suppose if when u create a deployment  using this configuration file  and applied in spec: replicas 2 then k8s will automatically add a status of the deployment to the file and 	updates the state continously  then k8s will compare this status with our actual configuration or specifiaction if it doesnot match then it work on it.
+	->to maintain the current status in configuation file the data will come from etcd(master brain)   
+
+->format of configuration files is .yaml
+
+TEMPLATE:(inside spec)
+very config file have blue print for pods named as template inside of specifications(spec)named as TEMPLATE:
+
+         as we descused deployments manages the pods so its blue print is configured inside the spec: names as template it contains its own meta data  and again spec: insside it
+	->it basically a configuration file inside a configuration file the reason for it is this configuration appplies to pod and outer confiugartion is for deployment config file`
+	-?it consits of
+		1.which port the pod should run 2.name  3.image(based on which imageit should run) 
+
+
+LABELS & SELECTORS(for connections):
+->the way the connection is established is using labesl and selectors 
+->metadata part contains labels and spec part contains selectors
+->in metadata part u give a key value pair(anythinng like app:nginux) and pods get label through template blueprint 
+->the label is matched by the selector 
+->in deployments we mention a label and in service we mention selector of same key-value pair which generates the correct communication 
+
+->another thing that should be configured in the services is ports 
+->template inside deployment consists of port number  of the application running inside container and same port number is also given inside services for the communication named as target port and along with this service also have serparate port for whcih service itself is accessible(Lets say 80) to acess this service from another service we can acess it thorugh port 80
+	
+->to see the port numbers the component is listing and also the end point of it we use command [kubectl describe service/deployment <itsname>]  and we will get it if we use service then we can see the endpoints(ip address of the pods)
+->to check whether its connected to correct pods ip or not  u can check the ip adress of a pod using kubectl get pod -o wide (gives more details including ip)
+
+
+
+HOW STATUS AUTOMATICALLY GENERATED:
+to get the status which stored in configuration file we should see the configuration file while the pod is running to do that we will command 
+[kubectl get deployment <deployment-name> -o yaml] thsi will give updated configuration of deplooyment which actually resides in the deployment 
+->u ll get yaml output in your console inorder to store it in a file u have to save it using cmd  [kubect lget deployment <deploymen-name> -o yaml > "filename.yaml"
+->also along with status metadata also updated some data like uptime also get stored in metadata and updated for every sec
+
+
+
+->u can delete configuration file using cmd [kubect delete -f <filename>]

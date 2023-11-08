@@ -1,0 +1,217 @@
+
+
+clients interact with a Kubernetes cluster through client tools like kubectl or Kubernetes client libraries. The communication happens via the Kubernetes API using HTTP(S) requests. The API server processes these requests, authenticates and authorizes clients, and communicates with the kubelets on worker nodes to perform cluster management actions. Network proxies and load balancers may be used to ensure reliable access to the API server, and the Kubernetes API itself provides a robust interface for users and automation tools to manage resources and operations within the cluster.we can create api calls using php and 
+
+MASTER NODE(control plane):  ->less resources required
+  MASTER node process:
+  1.Api server
+  2.scheduler
+  3.controller manager
+  4.Etcd
+
+WORKER NODE:(just like a server/computer)       	->more resources required 
+  worker node process:
+  1.pods(pod1,pod2)
+     *containers(each pod have multiple or single docker container(mostly preffered))
+  2.kubelet
+  3.kubeproxy
+  4.Docker(container runtime)
+
+working inside worked node:
+->there are pods inside worker node and each pod is associated with some internal ip address and these pods communicate whith each other inside worker node with that ips
+
+[MASTER-NODE]:(a backup is always provided gerneally 2-3 masternodes and load to api servers can also be load balaced btw masternodes)
+	we can a new master any time to our cluster (1.take a bare server and install master node processes and add it to cluster)
+
+    In a Kubernetes cluster, the master node is like the "brain" that manages and controls the entire cluster's operations. It is a critical component responsible for making high-level 	decisions and ensuring that the cluster is in the desired state. The master node's control plane consists of several essential components that work together to provide cluster 	management and coordination.
+    
+    1.kube-apiserver: The kube-apiserver is the central entry point and management endpoint for the Kubernetes cluster. It exposes the Kubernetes API, which allows users and other 	components to interact with the cluster. When you run kubectl commands to create, update, or delete resources (e.g., pods, services), these requests are processed by the kube-	apiserver. It serves as the front-end for all cluster activities.
+	-->if user want to deploy new app into kubernetes cluster then he should interact with api server using some tools client like cubelet
+	->it acts as cluster gateway , gatekeeper for authentication system, 
+    
+    2.etcd: Etcd is a distributed key-value store used to store the cluster's configuration data and current state. It serves as the cluster's single source of truth, storing information 	such as pod specifications, service definitions, node status, and more. The kube-apiserver uses etcd as its backend storage, ensuring that all components have access to the same 	shared data.(cluster state stroage)
+	The name "etcd" itself does not have a specific full form, as it is a symbolic abbreviation derived from "etcetera" (pronounced et-set-er-uh). The term "etcd" is meant to represent 	the idea of storing and managing various types of data, just like "etcetera" is often used to represent an unspecified or additional list of things.
+	->its a key value store of cluster state you can think of it as cluster brain acutally everychanges in cluster like a new pod is created or a pod is died gets saved in etcd.
+	->every component like controller manager,scheduler and all works based in this data for example how does scheduler now what resources are available in each node l
+	->when u make query req to api server about applcation state it get the info from etcd
+	->its alos main component in k8s cluster disaster recover and k8s admin should store this etcd data in remote db in the from of etcd snapshots(etcd is not db)
+	->so incase of disaster we can simple build new cluster with etcd snap shots to avoid downtime its good to maintain a backup cluster
+    
+    3.kube-controller-manager: The kube-controller-manager is a collection of controllers responsible for maintaining the desired state of the cluster. Each controller focuses on a 	specific aspect, such as the node controller (monitors node status), replication controller (ensures desired replicas of pods are running), and service controller (manages 	services). These controllers continuously observe the current state of the cluster and take actions to reconcile it with the desired state.
+	->when pods die in any component we must detect that they are dead and we should reschedule them asp 
+	->it detects the state changes like crashing of pods and try to recover the cluster by sending req to scheduler that these pods were dead  
+    
+    4.kube-scheduler: The kube-scheduler is responsible for placing new pods onto available worker nodes. When you create a pod without specifying a node, the kube-scheduler makes 	decisions based on factors like resource requirements, node availability, and affinity/anti-affinity rules. It intelligently distributes pods across the cluster to achieve optimal 	performance and resource utilization.
+	->to create a new pod or do any operation then a request is send to api server and it validates(security check) the request  and hand it over to scheduler to start the app pod in 
+	one of the worker nodes instead of randomly assigning those nodes scheduler has intelligent way of decsiding which specific worker node will next pod scheduled 
+	->if first check your request and analyse how much cpu it needs and apce it needs and it sees availaibilty in worker nodes and assign to most least busyNode(based on the occupence)
+
+	********** SCHEDULER JUST DECIDES ON WHICH NODE THE NEW POD SHOULD BE SCHEDULED 
+	->SO the kubelet takes the request from the scheduler and start or restart that pod with the container 
+    
+    The master node itself does not run application workloads. Instead, it focuses on the management and coordination of the worker nodes. The worker nodes, also called compute nodes, are 	where the actual containers and application workloads are executed.
+    
+    When you deploy an application to Kubernetes, the master node instructs the worker nodes to create and run the required containers, ensuring that the desired number of replicas 	specified in the pod's configuration is met. The master node also continuously monitors the health and status of pods and takes corrective actions if any issues arise.
+    
+    In summary, the master node is the central brain of a Kubernetes cluster, orchestrating and coordinating the entire system. It manages the configuration, state, and operations of the 	cluster, while the worker nodes handle the execution of application workloads. The successful functioning of a Kubernetes cluster relies heavily on the master node's control plane 	components, as they ensure that the desired state of the cluster is continuously maintained, providing scalability, high availability, and efficient resource management for 	containerized applications.
+
+->In Kubernetes, worker nodes are the machines (physical or virtual) that run containers and provide the necessary resources to execute the applications. Pods, on the other hand, are the smallest deployable units in Kubernetes and represent one or more tightly coupled containers.
+
+[Worker Nodes:]
+
+    Worker nodes are the compute resources within a Kubernetes cluster.
+    They are the machines on which containers are actually executed.
+    Each worker node runs a container runtime (e.g., Docker, containerd) that allows it to run and manage containers.
+    The worker nodes are part of the cluster and are controlled by the Kubernetes master.  
+
+Pods:
+
+    Pods are logical abstractions that run on the worker nodes.
+    A pod represents one or more tightly coupled containers that share the same network namespace and can communicate with each other using localhost.
+    Containers within the same pod share the same set of resources, making them ideal for colocating related containers that need to work together.
+    Pods are scheduled to run on worker nodes, and the containers within a pod always run on the same worker node.
+    In other words, pods are hosted and executed on worker nodes. Multiple pods can coexist on the same worker node, and each pod may contain one or more containers. The worker nodes             	manage the execution and lifecycle of pods and their containers
+
+Kubelet:
+	->kubelet interacts with both container and node, it start the pod with container inside assigning resources from node to container like cpu,storage and commcation b/w nodes is by 	using serives 
+    the kubelet is responsible for ensuring that the containers and pods specified in the cluster's configuration are running correctly on the node. 
+    It acts as the node agent and communicates with the Kubernetes control plane (Kubernetes master) to maintain the desired state of the cluster.
+    ->Here are the key functions and responsibilities of the kubelet:
+    
+    1.Node Registration: When a node (also known as a worker node) joins a Kubernetes cluster, the kubelet on that node registers the node with the Kubernetes master. This process involves 	the kubelet sending information about the node's capacity, resources, and other details to the master, allowing it to be recognized as part of the cluster.
+    
+    2.Pod Management: The kubelet is responsible for managing pods, the smallest deployable units in Kubernetes. It ensures that the pods specified in the cluster's configuration are 	running and healthy on the node. It starts, stops, and restarts containers within those pods as needed to maintain the desired state.
+    
+    3.Container Runtime Interaction: The kubelet interacts with the container runtime (e.g., Docker, containerd) running on the node. It invokes the container runtime to create, start, 	stop, and delete containers based on the pod specifications.
+    
+    4.Volume Management: The kubelet manages pod volumes, which are used to provide persistent storage to containers. It ensures that the specified volumes are mounted to the correct pods 	on the node.
+    
+    5.Monitoring and Health Checks: The kubelet continuously monitors the health of pods and their containers. If a container within a pod becomes unhealthy or crashes, the kubelet takes 	actions to restart the container or recreate the pod.
+    
+    6.Node Status Reporting: The kubelet reports the node's status to the Kubernetes master. This information includes resource utilization, available capacity, and conditions (e.g., 	network connectivity) that help the master make scheduling decisions.
+    
+    7.Managing Image Pulls: The kubelet pulls container images from the container registry as needed when starting new pods. It ensures that the required images are available locally on t	he node.
+	
+
+KUBE-PROXY:
+	->it is responsible for forwarding the req from services to pods is actually cube proxy it has intelligently forwarding logic inside that make shure communication also work in 	preformant way for eg if my-app replica is making a req with database instead of just randomly forwarding it any database it helps to forward it to replica that running on same 	node where pod is intiated the request. 
+    
+    Kube-proxy is another important component in a Kubernetes cluster. It runs on each worker node and plays a crucial role in enabling network communication between different pods and         	services within the cluster.
+    
+    ->The primary uses of kube-proxy are:
+    
+    1.Service Load Balancing: Kube-proxy provides a virtual IP address (also known as ClusterIP) for each Kubernetes service. When a client (inside or outside the cluster) accesses the 	service using this virtual IP,
+    
+    2.kube-proxy ensures that the incoming traffic is load-balanced across the pods that are part of that service. This load balancing ensures that the client's requests are distributed 	evenly among the healthy pods, providing high availability and scalability for the services.
+    
+    3.Service Discovery: Kube-proxy monitors the Kubernetes API server for changes in service endpoints (IP addresses of the pods backing the service). When a new pod is added or removed, 	kube-proxy updates the local network configuration to reflect these changes. This dynamic service discovery allows clients to discover and access the pods associated with a 	service, regardless of their IP addresses or number of replicas.
+    
+    4.NodePort Service: In addition to ClusterIP, kube-proxy also enables the NodePort service type. When a service is exposed as NodePort, kube-proxy listens on a static port on each 	node, and any traffic sent to that port is forwarded to the corresponding ClusterIP and then to the pods. This allows services to be accessible from outside the cluster using the 	node's IP address and the designated NodePort.
+    
+    5.ExternalIP Service: Kube-proxy can also handle services with an ExternalIP type. When a service is exposed with an ExternalIP, kube-proxy configures the node's network stack to route 	traffic with that specific IP address to the corresponding service's ClusterIP. This way, external clients can access the service using the specified ExternalIP.
+    
+    6.Pod-to-Pod Communication: Kube-proxy also facilitates pod-to-pod communication within the cluster. It sets up rules in the node's iptables or IPVS rules to forward traffic between 	pods on the same node or between pods on different nodes through the appropriate network interfaces.
+	->it assigns diff ips for each pod
+    
+    In summary, kube-proxy is responsible for managing the network traffic and providing essential networking functionalities, such as load balancing, service discovery, and routing, 	within a Kubernetes cluster. It ensures that services and pods are 
+    	accessible and can communicate seamlessly with each other, making it an essential component for building scalable and reliable microservices-based applications on Kubernetes.
+
+DEPLOYMENT:
+
+    if my pod is dead then at that time i have down time and to avoid that we are replicating the pods(this is the benifit of k8s) so, here we would have another pod(replica) 
+    ->in order to create the 2nd replica of my-application pod u dont create 2nd pod u just create a blue print for my application pod and specify how many replicas u need to create that                	blue print is called DEPLOYMENT, pods 
+    ->IN  real practise ull not create pods u ll create deployments and how many u need and also u can sacle up and scale down no replicas of pod 
+    ->pod is layer of abstraction on top of containers and deployement is on top of pods which makes convinent to interact with pods and replicate them 
+    ->so if one of your application pod is died then service forward the request to another one 
+
+	->it doesnt create replicas in same node
+	When you create a Kubernetes workload with a specified number of replicas, Kubernetes scheduler is responsible for placing those pods on nodes.
+	The scheduler takes into account various factors, such as resource availability, node health, and any constraints or affinity/anti-affinity rules you define in your pod 	specifications.
+	The scheduler aims to distribute the pods as evenly as possible across the available nodes in the cluster. It also considers resource constraints to prevent overloading specific 	nodes.
+	If the cluster has multiple nodes, the scheduler will create pods on different nodes to achieve redundancy and fault tolerance.
+	If a node fails or becomes unavailable, Kubernetes can reschedule the affected pods to other healthy nodes automatically, ensuring that your application remains available.
+    	->If you have only one worker node in your Kubernetes cluster, Kubernetes will create the replicas (pods) on that single node. In this scenario, since there's only one node 	available, there's no option to distribute pods across multiple nodes for redundancy or high availability.
+
+	->how ever we also need to replicate database pod as well as it also might die but we cant replicate database using the deployment as datastorage have some state so here we use 	another component called STATEFULL SET
+    ->so thats why majority case they deploy deplyments inside k8s cluster and db hosted outside the cluster
+    ->ans load to different replicase is balanced by service
+
+	STATEFULL SET:
+		In Kubernetes, every pod replica within a StatefulSet will work simultaneously, but each pod will have a unique identity and stable network identity.
+
+When you create a StatefulSet with multiple replicas, Kubernetes ensures that all replicas are deployed and running concurrently, maintaining the desired number of replicas as specified in the StatefulSet definition. Each replica will have its own set of resources (CPU, memory, etc.) and runs as a separate pod in the cluster.
+
+Here's how it works:
+
+Unique Identity: Each pod replica within the StatefulSet will have a unique and predictable name based on the naming convention defined in the StatefulSet's metadata. For example, if the StatefulSet is named "web", the pods may be named "web-0", "web-1", "web-2", and so on.
+
+Stable Network Identity: The unique name assigned to each pod replica serves as its stable network identity. The StatefulSet automatically creates a headless service that provides DNS entries for each pod's unique hostname. Clients can directly connect to specific pod replicas using their stable network identities.
+
+Simultaneous Operation: All pod replicas within the StatefulSet will run simultaneously and independently. Each pod replica can perform its tasks without interfering with the others.
+
+Ordered Deployment and Scaling: While all pods are running concurrently, StatefulSets ensure that pods are deployed and scaled in a predictable and ordered manner. When scaling up or down, the StatefulSet follows the specified order to maintain data safety and prevent data loss.
+
+Data Persistence: If your stateful application requires persistent data storage, each pod replica can be associated with a PersistentVolumeClaim (PVC) to maintain its stateful data across pod rescheduling.
+
+StatefulSets are particularly useful for deploying stateful applications, such as databases, that require stable network identities, ordered deployment, and data persistence. The ability to provide unique and stable identities for each pod replica allows stateful applications to maintain their data consistency and accessibility, even in dynamic containerized environments.
+
+
+
+
+
+
+
+SERVICE:
+    ->pod manages the container running inside it if a container dies or stops inside the pod it will automatically restarted
+   ->pods are ephemeral components which means that pods can i also die whery frequently and when pod dies a new one gets created then a new pods comes with a new ip address 
+    ->so because of that another component of k8s SERVICE is used basically it is a alternative or substitue of those ip address so instead of having those dynamic ip address there are
+	services setting infront of each pod that talk to each other 
+    ->now if a pod behind the service dies and gets recreated then service is doesnt change and stays in place
+	service has 2 main functionalites (2.TYPES: 1.INTERNAL SERVICE(used only for internal communication) 2.EXTERNAL SERVICE(accessible by user)
+	   1.permanent ip address used to communicate between the pods
+	   2.load balancer 
+
+	->external service:a service is service which opens communication from external sources  i.e we can access it through browser(public)
+		the url of external service conists of http protocol with the  node ip address with the port number of service(good for testing directly we can put node ip with port)
+
+	->internal service: its only used for internal communication inside the cluster (private acess)
+
+
+
+
+
+->INGRESS(entry point):
+ ---------
+	->it takes the request from users and forward it to services 
+	External Service is a basic Kubernetes mechanism to expose a single service directly to external clients, while Ingress is a more advanced traffic management layer that allows 	routing and load balancing of external traffic among multiple services based on various rules. The choice between External Service and Ingress depends on the specific requirements 	of how you want to expose and manage external access to your services in the Kubernetes cluster.
+	->it gives domain name as well
+
+
+
+-->YAML:
+*controller mangaer will check whether the desired pods== actually pods and if not equal then the pod might be damaged so with yaml confiugartion new pods is created
+
+
+
+CONFIG-MAP:
+	suppose in a pod we have a container application and also database for it lets assume the application is communicating with databse with help of service and if the endpoint(url) of 	database is changed suddenly then general we will configure this database endpoint(url) in our application image, so if suddenly the endpoint is changed then we have to rebulit the 	application into newversion and have to pull that new image into pod, it deficult for small changes like this for that purpose kubernetes have a component called configmap
+	->configMap-(external configuration to your application)
+	->so this configMap contains configuration data like urls and all
+	->we just need to connect config map with the pod 	
+	->so if we want to change the name of the service (endpoint of database) then we just need to adjust(edit) config map thats it 
+SECRET:
+	->so external configuration may contain the username and password and other sensitive information which may also change in applicatioin deployment proecess 
+	->so keeping password and all sensitivve info in CONFIGMAP in plain text format is insafe so we use SECRET 
+	->it similar to configmap but used to store secret data and it doesnt store in the form of plain text it store data in the form of base64 encoded fromat
+    
+    
+
+ VOLUMES:
+	->when u restart the pods the data in the pod may be erased in order to avoid this we use another component of kubernets called volumes	
+	->how it workds is it attaches physcal storage or harddisk to your pod the storage can be on local machine or remote storage outside the kubenetes cluster
+	->now the data is stored carefully
+	->here the point is k8s cluster explicitly doesnt manage any data percestance you as a user or adminstratior responsible for data
+
+
+
+

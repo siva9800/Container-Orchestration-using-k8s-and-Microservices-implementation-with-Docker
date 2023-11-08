@@ -1,0 +1,298 @@
+we will deploy 2 application 1.mongo express 2.mongo DB
+
+Mongo Express, also known as "mongo-express," is a lightweight web-based administrative interface for managing and interacting with MongoDB databases. It provides a user-friendly graphical interface that allows users to perform various database management tasks without requiring in-depth knowledge of MongoDB commands. where as mongo db is database 
+
+->this is simple web application communication with its dabase same format can be followed for any similar types
+
+1.create mongoDB pod:so first thing we need to create is a pod or deployment for that pod and also service which do not allow external request only allow internal communication inside cluster
+
+2.create mongo Express(front-end) pod: here we need 
+	1.DB url of mongoDB so that mongo Express can connect to it 
+	2.credentials (username,password of DB to authenticate) the we can pass this details to mongExpress deployment is thorugh its deployment.yaml file through .env(environmental 	variables)
+	3.we are gona create a ConfigMap that consisits of DB url and a secret which consists of DB user,DB pwd and we will referece both inside deployment.yaml
+	4.here we use ConfigMap because if our DB url changed after few days we need not recreate every pod wejust need to change the url in COnfigMap thats it.
+	5.once, this is done we need mongoExpress to be acessible from the browser to do that we need to create a External service that will allow external req to talk to the pod so, the 	url should be ip Adress of Node , port of external service 
+ 	6.the req come from browser and it goes to external service of MongExpress which will then forworded to mongoexpress pod the pod will then connnect to internal service of 	MOngoDB(backend) with help of its url in ConfigMap and secret(credentials) from that MongoDb internal service the req is forwarded to the MongoDb pod(deploymetnt) where it will 	authenticate req using credenetials 
+
+->to get list of all the components running inside the cluster we have command [kubectl get all] 
+
+step1: create deployment.yaml for mongodb 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  Labels:
+    app: mongodb
+spec:
+  replicas: 91
+  selector:
+    matchLabels:
+      app: mongolb
+  template:
+    metadata:
+      labels:
+	app: mongodb
+    spec:
+      containers:
+	- name: mongodb
+	image: mongo
+	ports:
+	- containerport: 27017
+	env:
+	- name: MONGO_INITDB_ROOT_USERNAME
+	  value:
+	- name: MONGO_INITDB_ROOT_PASSWORD
+	  value:
+
+
+ //here template is the blue print for pods 
+//image configuration for mongodb search mongo in docker hub and see about the image(container) like what ports its gonna open and external configuration its going to take if u see the default port of a mongodb container is 27017 and environmental varibles like root user name , root user password and now add ports to it
+	
+	ports:
+	- containerport: 27017
+	env:
+	- name: MONGO_INITDB_ROOT_USERNAME
+	  value:
+	- name: MONGO_INITDB_ROOT_PASSWORD
+	  value:
+//the below ports section is added by seeing the details of the image in docker hub and env stands for environment variable to store cred in safe value the values are your real user name and password; if have places values in the code then complete depoloyment.yaml for mongodb is ready 
+//we will not write admin username and password directly here to increase safety we will create a secret from where will refere it credentials secret lives in k8s and save it as mongo.yaml
+and not pushed into the repository
+
+step 2: creating secret which stores of secret credentials (secret is not pushed into any repositorys)
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-Secret
+type: Opaque
+data:
+    mongo-root-username: paste base64 enocded codes here
+    mongo-root-password:
+
+//Opaque is default for orbitry key-value pairs 
+//and in data will store our main credentails
+//the values to the keys username& pass are not plain text format they are base 64 encoded 
+//to convert that plain text into base 64 go to terminal and do [echo -n 'username' | base 64] instead of username u can keep anything like siva and it will give base 64 encoded one copy it and paste in secret.yaml file and the same way do for password also like [echo -n 'Siva@123' | base 64] and paste this also in secret yaml file 
+//so the order is that we have to create the secreate.yaml first and mention its path in deployment.yaml file of mongoDb
+
+ADDING REFERENCE TO SECRET inside the deployment.yaml of MongDB inside environment variable
+
+	env:
+	- name: MONGO_INITDB_ROOT_USERNAME
+	  valueFrom:
+	    secretKeyRef:
+	      name: mongodb-secret     -->  (name of the secret.yaml file)
+	      key: mongo-root-username
+	- name: MONGO_INITDB_ROOT_PASSWORD
+	  valueFrom:
+	    secretKeyRef:
+	      name: mongodb-secret
+	      key: mongo-root-password
+
+
+
+//so after setting secret.yaml path to our deployment the final code will be like
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  Labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongolb
+  template:
+    metadata:
+      labels:
+	app: mongodb
+    spec:
+      containers:
+	- name: mongodb
+	image: mongo
+	ports:
+	- containerport: 27017
+	env:
+	- name: MONGO_INITDB_ROOT_USERNAME
+	  valueFrom:
+	    secretKeyRef:
+	      name: mongodb-secret    
+	      key: mongo-root-username
+	- name: MONGO_INITDB_ROOT_PASSWORD
+	  valueFrom:
+	    secretKeyRef:
+	      name: mongodb-secret
+	      key: mongo-root-password
+
+
+step 3: NOW OUR mongo.yaml is ready and we can create a deployment along with its associated resources, such as ReplicaSets and Pods. out of it using command  [kubectl apply -f mongo.yaml]
+//so after creating yaml file simple do kubectl apply -f mongo.yaml to create a mongodb pod
+//if u do kubectl get all u can see pod starting along with deployment, replicaset 
+//to see more details simple do kubectl describe pod <pod-name>
+
+
+step 4: WE HAVE TO CREATE A INTERNAL SERVICE FOR MONGODB so that the other components and other pods can talk to the Mongodb
+
+//in yaml u can keep multiple documents in one file using 3 dashes which seperates the documents just like ---
+basically we can keep deployment and service in one yaml file as they belong to same mongdb by using --- to sepearte both
+
+deployment yaml comes here......
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  selector:  -->this is used to connect to pod through the label [by using labels in deployment yaml service can find the pod it can attach to using selector 
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017 -->this is service port and this can be different with container port
+      targetPort: 27017 -->this is the conatainer port inside the pod now service will connect through that port of container 
+
+//if save the file and do the same command [kubectl apply -f mongo.yaml]  now it will also create a service as well along with deployment u can check it using kubectl get service and inorder to edit the file u can use this cmd **[kubectl edit deployment deployment-name] and apply it again to see modifiactions
+
+//to check the service is communicating with the correct pod u can do **[kubectl describe service <serivce-name>] 
+and u can see it endpoint(the ips of pods its communicationg with) and port number aswell) if u want to see and ip address of a pod do **[kubectl get pod -o wide]
+use **[kubectl get all | grep mongdb] to get all components of mongdb
+
+
+
+
+
+STEP 5: CREATING MONGOEXPRESS(our frontend) deploymentt & service and also an external configuration(configmap) where will keep our database url
+
+//basically this conFigmap helps use when if we have muliple pods using the same DB url the we can keep that url in configmap and pass configmap referecne to the yamnl files of the pods and also when our db url changes after few days then we cant reacreate our pod as it url is linked to our pod then we can simple keep that url in config map so if we keep it in configmap then if url is changed we can simple change that in config map 
+->create a new yaml file for mongoExpress deployment and service let me name it as mongoexpress
+
+STEP 6: same as before create in yaml in same format and to know about port number of mongo-express container as we use the image from dockerhub go to dockerhub and see port number and username and password
+//default port is 8081
+
+//we need 3 three things for mongoExpress  
+	1.we need to tell which database application to connect (mongdb adrees(internal service))
+	2.we need credentials so that mongdb can authenticate that connection 
+	  so envorment varible for that is mongdb user,password, mongodb_server(DB url) we can see so many in docker hub but these 3 are enough and we can copy these names from there env 	  variables from there they are ME_CONFIG_MONGODB_ADMINUSERNAME, ME_CONFIG_MONGODB_ADMINPASSWORD, ME_CONFIG_MONGODB_SERVER
+
+//CREATING CONFIGMAP.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-configmap     -> we will in below code with this name
+data:
+  database_url: mongodb-service   (here the mongodb-database service name will acts as db url)it will communicate with that mongdb service
+
+
+//passing configMap as referecne to our main mongo-express yaml file
+	- name: ME_CONFIG_MONGODB_SERVER
+          valueFrom: 
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url 
+
+
+//final code is same as mongdb except env varibels where mongoxpress variable names are changed and inside it username and password is same again 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER ----->(for db url link)
+          valueFrom: 
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url
+
+//so these 3 env varibles are requrired for mongExpress to authenticate with mongDb
+
+-->after writing the code do these steps
+	1.kubectl apply -f mongo-configmap.yam (configmap name and creating configmap first befoe creating main pod)
+	2.kubectl apply -f mong-express.yaml (then apply our main mongoexpress file)
+
+-->then u can see the pods running
+and u can check the logs of that pod using  **[kubectl logs mong-expres-9ewwdsk](pod name)
+there u can see express server is listing to some http // link and database connected message over there 
+
+
+
+
+FINAL STEP: to acess the mongo-express from the browser inorder to do that we need a external service for mongo-express 
+
+how do i make it as external service by doing 2 things
+1.below the selector section we have to mention a type: LoadBalancer i.e this service type is loadbalancer 
+	actually this is somewhat confusing because the internal service also acts as load balancer but for only we keep type: loadbalncer for external service 
+->so what this type : loadbalacer in external service does is it accepts external request by assigning the service an external ip address and so accepts external requests so another thing we need to do is 
+2.we are gona provide a third port which going to be called nodePort (this is the port where external ip adress is open _
+->i have to put this port in browser to acess this whole service from outside
+->this nodePort no have some range and it should be in this range 30000-32676
+
+mongo-express deployment config file here..........
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express-service
+spec:
+  selector:
+    app: mongo-express
+  type: LoadBalancer  
+  ports:
+    - protocol: TCP
+      port: 8081 (service port it may be diff from container app port)
+      targetPort: 8081 (mong-express application port)
+      nodePort: 30000
+
+
+
+-->after completing the code then simple do **[kubectl apply -f mongo-express.yaml]
+-->kubectl get services to get available services details
+-->there u can se mongdb serivce have clusterIp (clusterIp means internal service) and mongoExpress service will have LoadBalacer(loadbalancer means external service)
+loadbalcer or external service will alos give clusterIp(internal services) in addtion to it also provides external ip address where the external req will comming from 	and u ill have port for both them just like 8081:30000/ like this here internal comm port is 8081 and external communication port in 30000
+
+**->in minikube to get the external ip or public ip of the service we have run this command **[minikube service <service-name>] this will redirect to browser and it also gives the public ip for it followd by external port 
+
+so when u perfome any operations in the frontend(mongo-express):
+	
+1.first step it reaches to mongo express external service
+	|
+	v
+2.mongo express pod
+	|
+	v
+3.mongDB internal service 
+	|
+	v
+4.mongDB pod (so we have the final changes here)

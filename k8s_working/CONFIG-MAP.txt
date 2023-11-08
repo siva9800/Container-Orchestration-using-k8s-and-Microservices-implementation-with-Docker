@@ -1,0 +1,89 @@
+CONFIG-MAP(k8s component):
+    What is a ConfigMap in Kubernetes?
+	
+    In Kubernetes, a ConfigMap is a resource that allows you to store configuration data separately from your container images. It enables you to manage configurations independently and 	provides a way to modify application settings without changing the application code or rebuilding the container.
+    ->suppose if we use a mongdb url in our main app and if the mongodb url changed after few days then we need to change the url in the container image(i.e we need to rebuild image) and 
+	and after it we need to restart again that container so if we use configmap  we can eliminate this.and not only this pass and  username can also change so its also under conifgmap
+	,not configmap but similar to it called secret which contain sensitve information like .env 
+
+    SECREAT: it also like conifg map but it store sensitive data in base 64 encoded format,to encrypt our secrets we need to deplooy 3rd party tools in our k8s 
+
+ 
+
+    Practical Example - Configuring an Nginx Pod with a ConfigMap:
+    
+    Let's create a ConfigMap to store the Nginx server configuration and use it to configure an Nginx Pod.
+    Step 1: Create the ConfigMap
+    Create a file named nginx-config.yaml with the following content:
+    
+    yaml
+    Copy code
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-configmap
+    data:
+      nginx.conf: |
+        server {
+            listen 80;
+            server_name example.com;
+            
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+            }
+        }
+    In this example, we are creating a ConfigMap named nginx-configmap with a key nginx.conf. The value of nginx.conf is the Nginx server configuration in plain text format.
+    Apply the ConfigMap using the following command:
+    kubectl apply -f nginx-config.yaml
+    Step 2: Create the Nginx Pod with the ConfigMap
+    Create a file named nginx-pod.yaml with the following content:
+    yaml
+    Copy code
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: nginx-pod
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-configmap
+    In this Pod specification, we are using the Nginx container image (nginx:latest). We have defined a volume named nginx-config-volume that will be populated with the data from the 	nginx-configmap ConfigMap. The volumeMounts section specifies that the Nginx container will mount the nginx.conf file from the nginx-config-volume at the path 	/etc/nginx/nginx.conf.
+    
+    Apply the Pod using the following command:
+    
+    Copy code
+    kubectl apply -f nginx-pod.yaml
+    Step 3: Verify the Configuration
+    Let's verify that the Nginx server is correctly configured with the data from the ConfigMap.
+    
+    Get the Pod's IP address:
+
+    kubectl get pods -o wide
+    Use the Pod's IP address to access the Nginx server:
+    
+    curl <pod_ip_address>
+    You should see the default Nginx page served at the root URL (/), as specified in the ConfigMap.
+    
+    What happened in this example?
+    
+    In this example, we created a ConfigMap named nginx-configmap with the Nginx server configuration. Then, we created an Nginx Pod named nginx-pod, and inside the Pod, we mounted the 	nginx-configmap ConfigMap's nginx.conf file to the Nginx container's configuration path.
+    
+    As a result, the Nginx server inside the Pod is now running with the custom configuration from the ConfigMap.
+    
+    Advantages of Using ConfigMaps:
+    
+    Separation of Configuration: ConfigMaps allow separation of configuration data from the application code, making it easier to manage and update configurations independently.
+    Dynamic Updates: ConfigMaps support dynamic updates, meaning changes to the ConfigMap are automatically reflected in the running Pods without the need to restart them.
+    Version Control: ConfigMap definitions can be version-controlled with your application code, enabling better collaboration and tracking changes over time.
+    In summary, ConfigMaps in Kubernetes provide a powerful and flexible way to manage configuration data for applications running in the cluster. They allow you to externalize 	configurations and inject them into Pods without the need for rebuilding containers, making it easier to maintain and update your applications.

@@ -1,0 +1,76 @@
+https://www.youtube.com/watch?v=z8qDyO8F3XQ
+
+->AWS manages control plane(schedule,api..) and as a developer u should manage working plane like network setting(proxies,...),kubeletes..
+
+->aws is responsible for scaling and backup maintanence and security
+
+->3 ways to manage nodes
+1.self managed node : u have to do everything 
+	a.ec2  b.proxy c.kubelete  d.cre    we have to manage all this (proxy we have subnets(pub/priv,routing tables,internetgateway, are netowrk settings)
+
+2.managed node group : 
+
+3.fargate
+	serverless architecture
+	->it can create worker nodes on demandd
+
+requirements for creating our cluster using aws console
+1.clustename ,k8s version
+2.iam role for cluster
+3.defining nodes, storgae and secrets
+4. network : vpc setup and subnets
+5.security for cluster
+creation of worker nodes: 
+	1.managing of node group 
+	2.select instance type
+	3.define min/max number of nodes
+	4.specify cluster to which this nodes will be attached
+
+&&& to avoid all this instead of aws console we can use eksctl
+
+
+
+iam user->existing user->security->create and download the access key   to connect cli
+
+connect aws with ur console (admin poweshell) default region name[us-east-1] default output format [json]
+https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html
+
+
+
+
+creating cluster in aws:
+
+https://eksctl.io/   (See for enqury)
+
+->u should configure u credentils of awscli in cmd
+->choco install eksctl
+ 
+No, there are no clusters created by default with ekctl. You need to explicitly create an Amazon EKS cluster using < ekctl create cluster > command or other ways like AWS console, AWS CLI or AWS SDKs.
+
+When you create an EKS cluster using ekctl, it creates a CloudFormation stack that provisions the resources required for the cluster, such as the VPC, subnets, security groups, and IAM roles. Once the CloudFormation stack is created, ekctl provisions the Kubernetes control plane and sets up the worker nodes.
+
+Therefore, you need to have sufficient permissions in your AWS account to create the necessary resources for the EKS cluster.
+
+
+->deleting clustere    <kubectl delete cluster <clustername> >
+
+
+->creating cluster with specifivations:  eksctl create cluster --name 21MH5A0351-cluster --region mumbai --version 1.27
+u can also use
+eksctl create cluster \
+--name my-eks-cluster \
+--version 1.21 \
+--region us-west-2 \
+--nodegroup-name my-node-group \  (group name of workin nodes)
+--node-type t2.micro \   (typre of working node)
+--nodes 2 \   (for no working nodes(servers))
+--managed
+
+->custimizes ur cluster by using Customize your cluster by using a config file. Just run   <eksctl create cluster -f cluster.yaml>
+
+Currently, Amazon EKS is available in the following regions in India:
+
+ap-south-1 (Mumbai)
+ap-southeast-1 (Singapore)
+ap-southeast-2 (Sydney)
+You can use any of these regions to create your EKS cluster. Keep in mind that the availability of certain instance types, services, and features may vary by region, so it's important to choose a region that best suits your needs.

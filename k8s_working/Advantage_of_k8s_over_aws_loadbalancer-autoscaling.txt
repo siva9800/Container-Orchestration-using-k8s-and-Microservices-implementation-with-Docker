@@ -1,0 +1,13 @@
+ADVANTAGES OF K8S WHERN COMPARED TO AWS EC2 ISNTANCES WITH LOAD BALANCING AND AUTOSCALING AND OTHER PLATFROMS:
+	1.replication is much user in k8s much easier wheb compared to others, only thing u need to do is just mention how many replicas u need.
+	2.self-healing feature, so basically wt is means is if a pod dies there should be a process that monitors the state that detects that a replica died and automatically restarts a new 
+	  pod,this is out of the box feature in k8s;
+	3.smart scheduling feature of k8s:if u have 50 worker servers that ur application container will run on with k8s u dont have to decide where to run ur container u just say do need 	  any new replica of pod and k8s smart scheduler will goes and finds the best fitting worker node among those 50 worker nodes to scheduler your container by comparing how much 	  resources a worker node has available or free
+	4.finally overall many features that u can also do in other platforms like(aws loadbal,autoscal)  are easy to create and configure in k8s like service as a load balancer 
+
+->aws scales nodes but with k8s we can scale pods also i.e if inside a ec2 a container is crashed we need to restart whole server but k8s only start the samllest unit pod
+
+Container Orchestration vs. Infrastructure Scaling:
+
+Kubernetes: Kubernetes is a container orchestration platform that abstracts the underlying infrastructure and focuses on managing the containers themselves. It provides tools for defining and managing container workloads, scheduling containers on available nodes, and ensuring their desired state.
+AWS Auto Scaling with Load Balancing: AWS Auto Scaling and load balancing primarily deal with infrastructure scaling. They manage the number of instances (VMs) that host your containerized applications and distribute incoming traffic to these instances. While they work well with containers running on EC2 instances, they don't provide the same level of container-specific orchestration and management as Kubernetes

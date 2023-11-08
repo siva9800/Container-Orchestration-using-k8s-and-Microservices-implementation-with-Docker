@@ -1,0 +1,76 @@
+->external service and ingress main use is similar i.e both used to make the our application acessible from the internet 
+
+-> using external service and acessing the public ip of the external service is ok but we can use ingress to get a domain name for the public ip 
+
+->if we use ingress then we convert external service to internal service
+
+->ingress is also conigured in yaml files
+
+->its format is like 
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: name
+  annotations:
+    kubernetes.io/ingress.class: "nginx"  
+spec: 		->in spec all configs happen
+  rules:      --> this rules defines the main address or all the request to that host 
+    - host: app.com   //this is the host that usesr will enter in the browser, the requesting reaching to this host is forwarded to any internal service (this is a valid domanin adrees)
+      http:      ->this http doesnt correspond to our browser protocal
+        paths:
+          - path:    -> path means url path
+            backend:
+              serviceName: my-service  ==>this is the internal service so host request is forwarded to here 
+              servicePort: 8080    ->internal service port
+
+->WE should map the host(domain name) to the ip address of the node that represents the entry point to your k8s cluster if u decside one of the nodes inside k8s cluster is going to be the entry point then u should map this to the ip address of that node  
+->we see diff b/w external service and ingress is that ingress dont have nodeport 
+
+
+steps to implemetn ingress
+->you need a implemenatation for ingress and we call it as ingress controller 
+
+step1: 
+install ingress controller, ingress controller is a another pod or set of pods that run on your note in your k8s cluster and thus evalution and processing of ingress routes so the kind: Ingress in yaml is wt we talk abt (ingress controller)
+
+use of Ingress controller :
+-to evalute all the rules you have defined in your cluster 
+-to manage all the redirections(u may have 50 ingress componenets in ur clustser it evalute all rules and decide based on it which forwarding rule for that specific request 
+- u have to choose any ingress controller to download there are many 3rd party and all one directly from k8s called k8s Ngniux ingress controller u should install it on your cluster 
+then u can create ingress rules and whole confi canwork 
+
+
+->u have to consider the environment on which your cluster runs
+->if u run ur cluster in a cloud provider then they will provide a load balance infront of the cluster which splits the traffic else  if u deploy it in a bear metal environment then u should configure it yourself just like implementing proxy server which acts as enty point to our main server and redirects to ingress controller and ingress controller then look for which specific rule applies to that request and whole internal req forwarding will  happen 
+
+->minikube addons enable ingress   - this command will automatically start the k8s nginux implementation of ingress controller
+
+->if u do kubectl get pods u can see ingres(k8s nginux ingress is running there)
+
+step2:
+->once ingress contrller running then ucan create ingress rules that the controller can evaluate 
+
+lets take a sample pod and make it acessible from public using ingress
+
+->kubectl get all -n <pod-name>  - to see all components of the pod
+
+->u can configure it by using the above code at top u can also add name space 
+->after creating apply it in minikube and and now to check it use command    
+	
+	-> kubectl get ingress -n <namespace-name> --watch   ->this command will give availble ingress and it public ipaddress 
+
+->then u have to copy that ip address and map that ip address to host name u have givein ingress yaml file
+->todo that do -> sudo vim /etc/hosts     (then a vim editor will be opened inside etc->hosts->
+->here u should define that mapping like   <ip_address>   host_name(domainname)LIKE app.com       (all req to that domain name will be forwarded to that ingress ip)
+->ingress also have a default backend for handling and incase wrong connect itgives error msg 
+
+
+
+->in case with the same domain if we have several application like for leetcode problems,potd,interview....
+->then including host u will add paths for that sub applications 
+->then if u enter host name like amazon u enter to amazon for ther if u need to go to payment then u have to do amazon/payments  in this way u can do forwarding with one ingress of same host to mutiple apps
+->or instead of having one host u can have multiple hosts
+
+
+->till now we have seen ingress forwding to http request we can make it https very easy using configuring TLS certificate

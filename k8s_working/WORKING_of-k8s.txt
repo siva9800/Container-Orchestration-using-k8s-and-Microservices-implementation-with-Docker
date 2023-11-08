@@ -1,0 +1,11 @@
+HOW DO WE CREATE THE RESOURCES AND CONFIGURE THE K8S CLUSTER:
+
+->all the configuration in k8s cluster actual goes through the master node with process called api server 
+->k8s which could be ui k8s dashboard, script or a curl command or a command line tool like kubectl they all talk to the api server and they send configuration request to the api server which is the main or only entry point to the server 
+->this request should be either in yaml format or json format 
+
+->the config req are done in declarative format if we declare we want 2 replica pods then k8s will create 2 pods 
+->controller manager will checkk desired state == actualstate and if any pods fails it automatically restarts 
+
+
+WHAT IS MINI KUBE we have separate file

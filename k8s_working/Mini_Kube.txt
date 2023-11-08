@@ -1,0 +1,119 @@
+production cluster setup consits of atleast 2 master nodes and multiple worker nodes and u will have a sepearte physical or vitual machine which repreasents a node
+
+->to test something on the local environment like deploying new application or new components and want to test it on loacl machine obvously set a cluster is really diffcult and also costly as well
+
+->exactly for this use case there is a open source tool called minikube it is a oneNode cluster where master process and wokrer process run on the one node and this node will have docker container runtime pre-installed to run containers inside pods the way its gona run is throgh virtual box or some other hyperviser 
+  ->minikube creates a virtua box on your laptop, node runs in that vrtual box
+  ->it 1 node k8s cluster used for testing pourposes 
+
+KUBECTL:
+->u need some way to iterat with the cluster like creating pods and other kubernetes components and the way u can do it is using kubectl
+->its command line tool for k8s cluster 
+How it works:
+->we need to talk to api server in master node in order to any proces the way we can achieve this by several client like having a ui ,dashboard, or k8s Api, or command line(cli)like kubectl and kubectl is most power among all wecan do many operations 
+->kubectl sends req to api server to delete or add components then worker process in minikube actuall make it geppen 
+->kubectl is not only for a minikube cluster its also used for cloud cluster or hybrid cluster its used for any type k8s cluster setup
+
+installation:
+	->minikube need virtualization because minkube need a hyper visor
+	->so install any hyper visor and also choclaty 
+	->install kubect using this guide lines and link https://kubernetes.io/docs/tasks/tools/#install-kubectl
+
+2.installing kubectl
+1.choco install kubernetes-cli
+2.Test to ensure the version you installed is up-to-date:
+kubectl version --client
+3.Navigate to your home directory:
+# If you're using cmd.exe, run: cd %USERPROFILE%
+cd ~
+Create the .kube directory:
+mkdir .kube
+Change to the .kube directory you just created:
+cd .kube
+Configure kubectl to use a remote Kubernetes cluster:
+New-Item config -type file
+
+
+3. **Install Minikube:**
+   Open a Command Prompt or PowerShell window with administrator privileges and run the following command to install Minikube:
+
+   choco install minikube
+ 
+
+   If you don't have Chocolatey (choco) installed, you can install it by following the instructions here: https://chocolatey.org/install
+
+4. **Start Minikube:**
+   To start Minikube, run the following command:
+
+ 
+   minikube start --vm-driver=<hypervisor>
+ 
+
+   Replace `<hypervisor>` with `hyperv` for Hyper-V or `virtualbox` for VirtualBox.
+
+5. **Verify Minikube:**
+   After Minikube starts, you can verify its status using:
+
+   
+   minikube status
+   
+
+6. **Interact with Minikube:**
+   You can now use `kubectl` to interact with the Minikube cluster. For example, to get the nodes:
+
+   
+   kubectl get nodes
+That's it! You now have Minikube installed and running on your Windows machine. You can use it to experiment with Kubernetes locally. Remember that Minikube is a tool to run a single-node Kubernetes cluster for development and testing purposes.
+
+
+
+--->next steps check the list of commands use kubectl and for minikube use minikube
+
+some of the commands are kubectl get nodes (to see the running nodes)
+2.minikube status tells all the componets of cluster status 
+
+->minikube is oonly used for  starting and deleting the cluster remaining all the done useing kubectl
+
+->minikube delete will delete the cluster and to start the cluster in debug i.e to print error we use this command -> minikube start --vm-driver=virtualbox --v=7 --alsologtostderr 	
+
+->kubectl getservices list all the services present by default we have 1 one service 
+->if u click kubectl create -h(this is help command and tells all the commands using create word)
+
+->pod is smallest deployable unit in kubernetes cluster but in practise we will not create pods directly and not work it with directly 
+->there is a abstraction over pods that is called deployment and we will create deployment and deployment will create pods 
+we use command kubectl create deployment NAME --image=image(give imag name) [--dry-run] [options]  (the pod need to be created based on certaine image)
+->we can see replicaset by using command kubectl get replicaset gives how many replcas a pod have and we can give no of replcias while creating deployment in option
+->between deployment and pods there is another layer that is replicaset this is automatically managed by kubernetes deployment->--
+
+->deployment acts as a blue print for creating pods 
+
+		LAYERS OF ABSTRACTION:
+		  1.DEPLOYMENT MANAGES A REPLICASET
+		  2.REPLICASET MANAGES A POD
+		  3.POD IS AN ABSTRACTIONN OF A CONTAINER
+	**Every thing below the deployment will be handled by kubenetes 
+	** the pod name has prefix of deployment name and replcasets id and its own id (deployment_name+replicaset+itsownid)
+->we can edit the deployment file using **[kubectl edit deployment deployment-name] and after moidfiy just click :wq to save and exit then new pod created while old one gets terminated
+->by using create deployemt command we will get auto-generated configuration file with default values
+->kubectl describe pods tells about state changes and whats actually happening inside the pod
+->kubectl logs <pod-name> tell whats application container logged inside the pod it helps for debugging if applications have any problems and another usefull command for debuggin when somethingg is not working and what to check then use 
+	[ kubectl exec -it <pod-name> -- bin/bash] (it stands for interact with terminal)
+	->this command takes u into the terminal of the application conatiner inside the pod like root@mongodb-application  then ull be inside the application as root user so u can enter 
+	  into container with the help of this command to exti just enter exit
+->kubectl delete <deployment-name> to delete the pod [so all the CRED operation create,read,edit,delete are done at deployment level]
+
+
+KUBERNETES CONFIGURATION FILES:
+
+we have ->kubectl create deployment <depoloymen-name> --image=<image-name> option-1 option-2 based on the given options k8s will create confiugaration files if we have lot to configartions then it practically tough to write all the options in the command line 
+->so because of that in practise u ll work with kubernetes configuration files(.yaml) it contains what component ur creating, it name, and what image its based on, and other optioins in configuration file and u just tell kubectl to excute that configuration file
+->the way u can do it is using [ kubectl apply -f <file name.yaml>] command (takes file as parameter and excetues it) we can create it there isself using touch and vim cmd alos we can use already  created files asweell
+
+
+
+
+->to see the port numbers the component is listing and also the end point of it we use command [kubectl describe service/deployment <itsname>]  and we will get it if we use service then we can see the endpoints(ip address of the pods)
+->to check whether its connected to correct pods ip or not  u can check the ip adress of a pod using [kubectl get pod -o wide] (gives more details including ip)
+
+
+->to check the cluster infor we use kubectl cluster-info

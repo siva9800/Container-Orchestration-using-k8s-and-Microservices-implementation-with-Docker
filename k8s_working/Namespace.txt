@@ -1,0 +1,54 @@
+ A Namespace provides a logical separation and organization of resources within a cluster. It's useful for multi-tenancy, isolating applications, and managing access controls, resources, and naming conflicts.
+->in k8s cluster we can organise resources in namespace we can have a multiple namespace inside a clouster (namespace is a virtual cluster inside a cluster)
+BY DEFAULT K8S WILL GIVE 4 NAMESPACES: they are
+
+kubenetees-dashboard - this namespace shipped automatically in minikube so its specific to minikube installation and we will not have this in standard cluster
+
+1.kubesystem - this name space is not meant for your use itsfor the system process, master and kubectl process we should modify anythingin this
+2.kubepublic - this actual consists of publicly acessible data it consists of a config map which contains cluster info which is accessble from public we get it by using kubectl cluster info
+3.kube-node-lease -this is recent addition to k8s, it holds info abt the heartbeat of nodes, determines availablity of nodes 
+4.default 	- this is the one u will use to create if u dont create any namespace 
+
+-> kubectl create namespace <namepsace-name>        -u can create ur own name space using the command 
+-> kubectl get namespace  			- to see namespaces
+we can also create namespace using a namespace configuration file 
+
+
+WHY TO USE NAMESPACE: 
+1.U HAVE so many resources running in ur namespace u really dont have any overview of the resoureces like configmaps, deployments, services, replicaset and all 
+
+->so, in this case we will group resources into the namespace for example we create the database namespace and we groupo here our database and all its required resources 
+->and we can have a MONITIORING NAMESPACE to deploy the promotheous and all the stuff 
+->this the one way of logically gouping your resources inside the cluster
+->ACCORDING to off documentation of k8s we shouldnt use namespace for smaller projects having upto 10 users
+
+2.ANTOTHER USE CASE OF NAMESPACE IS when you have many teams with same applciation
+
+->lets say u have 2 teams working on same cluster 
+->if team 1 creaet a my-app deployment and if accedentially team create a deployment with same name then this will overwrite the first one to avoid this we use namespaces
+
+3.staging and resource sharing
+
+4.when u use blue/green deployment  that means u have app with diff version(each version will be in seperate namespace) and the both version use or share resources in cluster from other namespace like nginux-ingress with out have to set up a sepearate cluster
+
+5.acess and set resource limits to namespace:  it u have 2 teams working in sep namespace we can only give acess to their nammespace
+=->we can also limit resource or set ristriction to resources like cpu,ram and storgae of cluster to split between  namepace
+
+
+ACESSING RESOURCES FROM ANTOTHER NAMESPACE
+
+->u should define a config map in each namespace whose referense is in service of another names space
+
+->the resources which cant be shared b/w namespaces are services so, so instead of service reference in the config map we metion the namspace name to acess service
+
+
+
+
+
+
+-> kubectl apply -f mysql-conigmap.yaml --namesapce=my-namespace1   -- -- we can deploy a application in specific namespace using this command or 
+-> we can also directly mention the namespace in configuration(yaml)files just like NAMESPACE: <ns name> in metadata part
+
+
+->kubectl get configmap -n <namespace-name>  ||| -o yaml to get code  -- to get configmaps in paritcularl namepsacces mentioned
+->to change the default namesspace we have 3rd part tool called kubens we have to install to make it happen
